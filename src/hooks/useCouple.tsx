@@ -15,19 +15,22 @@ export function useCouple() {
   const [couple, setCouple] = useState<Couple | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchCouple = async () => {
-    if (!user) { setLoading(false); return; }
+  const fetchCouple = async (isInitial = false) => {
+    if (!user) { 
+      if (isInitial) setLoading(false);
+      return; 
+    }
     const { data } = await supabase
       .from("couples")
       .select("*")
       .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
       .maybeSingle();
     setCouple(data);
-    setLoading(false);
+    if (isInitial) setLoading(false);
   };
 
   useEffect(() => {
-    fetchCouple();
+    fetchCouple(true);  // Only set loading during initial fetch
   }, [user]);
 
   const createCouple = async () => {
@@ -37,7 +40,9 @@ export function useCouple() {
       .insert({ user1_id: user.id })
       .select()
       .single();
-    if (data) setCouple(data);
+    if (data) {
+      setCouple(data);
+    }
     return { data, error };
   };
 
@@ -60,9 +65,11 @@ export function useCouple() {
       .select()
       .single();
     
-    if (data) setCouple(data);
+    if (data) {
+      setCouple(data);
+    }
     return { data, error };
   };
 
-  return { couple, loading, createCouple, joinCouple, refetch: fetchCouple };
+  return { couple, loading, createCouple, joinCouple, refetch: () => fetchCouple(false) };
 }

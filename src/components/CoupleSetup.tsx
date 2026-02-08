@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useCouple } from "@/hooks/useCouple";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,8 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Heart, UserPlus, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export default function CoupleSetup() {
-  const { createCouple, joinCouple } = useCouple();
+interface CoupleSetupProps {
+  createCouple: () => Promise<{ data: any; error: any }>;
+  joinCouple: (code: string) => Promise<{ data: any; error: any }>;
+}
+
+export default function CoupleSetup({ createCouple, joinCouple }: CoupleSetupProps) {
   const { signOut } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +21,9 @@ export default function CoupleSetup() {
     setLoading(true);
     const { data, error } = await createCouple();
     if (error) toast({ title: "Error", description: String(error), variant: "destructive" });
-    else if (data) toast({ title: "Couple created!", description: `Share code: ${data.invite_code}` });
+    else if (data) {
+      toast({ title: "Couple created!", description: `Share code: ${data.invite_code}` });
+    }
     setLoading(false);
   };
 
@@ -27,7 +32,9 @@ export default function CoupleSetup() {
     setLoading(true);
     const { error } = await joinCouple(inviteCode.trim());
     if (error) toast({ title: "Error", description: String(error), variant: "destructive" });
-    else toast({ title: "Paired! 💕", description: "You're now connected with your partner." });
+    else {
+      toast({ title: "Paired! 💕", description: "You're now connected with your partner." });
+    }
     setLoading(false);
   };
 
