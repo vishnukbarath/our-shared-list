@@ -15,24 +15,34 @@ export default function CoupleSetup({ createCouple, joinCouple }: CoupleSetupPro
   const { signOut } = useAuth();
   const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleCreate = async () => {
     setLoading(true);
-    const { data, error } = await createCouple();
-    if (error) toast({ title: "Error", description: String(error), variant: "destructive" });
-    else if (data) {
+    setError(null);
+    const { data, error: createError } = await createCouple();
+    if (createError) {
+      setError(createError);
+      toast({ title: "Error", description: createError, variant: "destructive" });
+    } else if (data) {
       toast({ title: "Couple created!", description: `Share code: ${data.invite_code}` });
     }
     setLoading(false);
   };
 
   const handleJoin = async () => {
-    if (!inviteCode.trim()) return;
+    if (!inviteCode.trim()) {
+      setError("Please enter an invite code");
+      return;
+    }
     setLoading(true);
-    const { error } = await joinCouple(inviteCode.trim());
-    if (error) toast({ title: "Error", description: String(error), variant: "destructive" });
-    else {
+    setError(null);
+    const { error: joinError } = await joinCouple(inviteCode.trim());
+    if (joinError) {
+      setError(joinError);
+      toast({ title: "Error", description: joinError, variant: "destructive" });
+    } else {
       toast({ title: "Paired! 💕", description: "You're now connected with your partner." });
     }
     setLoading(false);
@@ -50,6 +60,12 @@ export default function CoupleSetup({ createCouple, joinCouple }: CoupleSetupPro
           <h1 className="text-3xl font-display font-bold text-foreground">Get Started Together</h1>
           <p className="text-muted-foreground">Create a new couple list or join your partner's</p>
         </div>
+
+        {error && (
+          <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
+            {error}
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="border-border/50 shadow-lg shadow-primary/5">
