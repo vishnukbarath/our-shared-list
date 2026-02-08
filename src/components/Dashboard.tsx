@@ -25,7 +25,7 @@ const ASSIGNED_LABELS: Record<string, string> = {
 
 export default function Dashboard({ couple }: { couple: Couple }) {
   const { user, signOut } = useAuth();
-  const { tasks, loading, addTask, toggleTask, deleteTask } = useTasks(couple.id);
+  const { tasks, loading, error, addTask, toggleTask, deleteTask } = useTasks(couple.id);
   const { toast } = useToast();
 
   const [newTitle, setNewTitle] = useState("");
@@ -33,12 +33,20 @@ export default function Dashboard({ couple }: { couple: Couple }) {
   const [newAssigned, setNewAssigned] = useState<Task["assigned_to"]>("unassigned");
   const [filter, setFilter] = useState<string>("all");
   const [copied, setCopied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim()) {
+      toast({ title: "Please enter a task title", variant: "destructive" });
+      return;
+    }
+    
+    setIsSubmitting(true);
     await addTask(newTitle.trim(), newPriority, newAssigned);
     setNewTitle("");
+    setIsSubmitting(false);
+    toast({ title: "Task added! 🎉" });
   };
 
   const copyCode = () => {
@@ -99,11 +107,17 @@ export default function Dashboard({ couple }: { couple: Couple }) {
         {/* Add Task */}
         <Card className="border-border/50 shadow-md shadow-primary/5">
           <CardContent className="p-4">
+            {error && (
+              <div className="mb-3 p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+                {error}
+              </div>
+            )}
             <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3">
               <Input
                 placeholder="What needs to be done? 💭"
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
+                disabled={isSubmitting}
                 className="flex-1"
               />
               <div className="flex gap-2">
@@ -127,7 +141,7 @@ export default function Dashboard({ couple }: { couple: Couple }) {
                     <SelectItem value="her">👩 Her</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button type="submit" size="icon">
+                <Button type="submit" size="icon" disabled={isSubmitting}>
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
