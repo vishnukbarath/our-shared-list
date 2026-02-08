@@ -6,7 +6,7 @@ import Dashboard from "@/components/Dashboard";
 
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
-  const { couple, loading: coupleLoading, createCouple, joinCouple, refetch } = useCouple();
+  const { couple, loading: coupleLoading, createCouple, joinCouple } = useCouple();
 
   if (authLoading || coupleLoading) {
     return (
