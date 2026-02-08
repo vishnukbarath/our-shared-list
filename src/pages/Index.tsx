@@ -1,14 +1,23 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useCouple } from "@/hooks/useCouple";
+import CoupleSetup from "@/components/CoupleSetup";
+import Dashboard from "@/components/Dashboard";
 
-const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+export default function Index() {
+  const { user, loading: authLoading } = useAuth();
+  const { couple, loading: coupleLoading } = useCouple();
+
+  if (authLoading || coupleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground font-body">Loading...</p>
       </div>
-    </div>
-  );
-};
+    );
+  }
 
-export default Index;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!couple) return <CoupleSetup />;
+
+  return <Dashboard couple={couple} />;
+}
