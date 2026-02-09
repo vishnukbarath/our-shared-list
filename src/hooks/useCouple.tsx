@@ -28,14 +28,15 @@ export function useCouple() {
         .from("couples")
         .select("*")
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
       
       if (fetchError) {
         console.error("Couple fetch error:", fetchError);
         setError(fetchError.message);
       }
       
-      setCouple(data || null);
+      setCouple(data && data.length > 0 ? (data[0] as Couple) : null);
     } catch (err) {
       console.error("Couple fetch exception:", err);
       setError("Failed to load couple data");
@@ -48,38 +49,45 @@ export function useCouple() {
     fetchCouple(true);
   }, [user, fetchCouple]);
 
-  // Real-time subscription for couple changes
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel(`couple-${user.id}`, { config: { broadcast: { self: true } } })
+      .channel(`couple-${user.id}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "couples",
-          filter: `user1_id=eq.${user.id},user2_id=eq.${user.id}`,
         },
         () => {
           fetchCouple(false);
         }
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Realtime subscribed to couple updates");
-        }
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user, fetchCouple]);
 
-  const createCouple = async () => {
-    if (!user) return { error: "Not authenticated" };
+  const createCouple = async (): Promise<{ data: Couple | null; error: string | null }> => {
+    if (!user) return { data: null, error: "Not authenticated" };
     
+    // Check if user already has a couple
+    const { data: existing } = await supabase
+      .from("couples")
+      .select("*")
+      .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      const c = existing[0] as Couple;
+      setCouple(c);
+      return { data: c, error: null };
+    }
+
     try {
       setError(null);
       const { data, error: createError } = await supabase
@@ -104,8 +112,8 @@ export function useCouple() {
     }
   };
 
-  const joinCouple = async (inviteCode: string) => {
-    if (!user) return { error: "Not authenticated" };
+  const joinCouple = async (inviteCode: string): Promise<{ data: Couple | null; error: string | null }> => {
+    if (!user) return { data: null, error: "Not authenticated" };
     
     try {
       setError(null);
@@ -115,29 +123,10 @@ export function useCouple() {
         .eq("invite_code", inviteCode)
         .maybeSingle();
       
-      if (findError) {
-        console.error("Couple find error:", findError);
-        setError(findError.message);
-        return { error: findError.message };
-      }
-      
-      if (!existing) {
-        const msg = "Invalid invite code";
-        setError(msg);
-        return { error: msg };
-      }
-      
-      if (existing.user2_id) {
-        const msg = "This couple is already paired";
-        setError(msg);
-        return { error: msg };
-      }
-      
-      if (existing.user1_id === user.id) {
-        const msg = "You can't join your own couple";
-        setError(msg);
-        return { error: msg };
-      }
+      if (findError) return { data: null, error: findError.message };
+      if (!existing) return { data: null, error: "Invalid invite code" };
+      if (existing.user2_id) return { data: null, error: "This couple is already paired" };
+      if (existing.user1_id === user.id) return { data: null, error: "You can't join your own couple" };
 
       const { data, error: updateError } = await supabase
         .from("couples")
@@ -146,19 +135,13 @@ export function useCouple() {
         .select()
         .single();
       
-      if (updateError) {
-        console.error("Couple join error:", updateError);
-        setError(updateError.message);
-        return { error: updateError.message };
-      }
+      if (updateError) return { data: null, error: updateError.message };
       
       setCouple(data as Couple);
       return { data: data as Couple, error: null };
     } catch (err) {
       console.error("Couple join exception:", err);
-      const errMsg = "Failed to join couple";
-      setError(errMsg);
-      return { error: errMsg };
+      return { data: null, error: "Failed to join couple" };
     }
   };
 
