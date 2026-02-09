@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCouple } from "@/hooks/useCouple";
 import CoupleSetup from "@/components/CoupleSetup";
 import Dashboard from "@/components/Dashboard";
+import { Heart } from "lucide-react";
 
 export default function Index() {
   const { user, loading: authLoading } = useAuth();
@@ -10,7 +11,8 @@ export default function Index() {
 
   if (authLoading || coupleLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3">
+        <Heart className="w-8 h-8 text-primary animate-heart-beat" />
         <p className="text-muted-foreground font-body">Loading...</p>
       </div>
     );
